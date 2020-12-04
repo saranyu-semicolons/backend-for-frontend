@@ -1,0 +1,46 @@
+{
+    "name": "services/6F81-5844-456A/skus/01CF-31EC-0C56",
+    "skuId": "01CF-31EC-0C56",
+    "description": "Preemptible Custom Instance Core running in APAC",
+    "category": {
+        "serviceDisplayName": "Compute Engine",
+        "resourceFamily": "Compute",
+        "resourceGroup": "CPU",
+        "usageType": "Preemptible"
+    },
+    "serviceRegions": [
+        "asia-east1"
+    ],
+    "pricingInfo": [
+        {
+            "summary": "",
+            "pricingExpression": {
+                "usageUnit": "h",
+                "usageUnitDescription": "hour",
+                "baseUnit": "s",
+                "baseUnitDescription": "second",
+                "baseUnitConversionFactor": 3600,
+                "displayQuantity": 1,
+                "tieredRates": [
+                    {
+                        "startUsageAmount": 0,
+                        "unitPrice": {
+                            "currencyCode": "USD",
+                            "units": "0",
+                            "nanos": 7680000
+                        }
+                    }
+                ]
+            },
+            "currencyConversionRate": 1,
+            "effectiveTime": "2020-12-02T11:52:52.691Z"
+        }
+    ],
+    "serviceProviderName": "Google",
+    "geoTaxonomy": {
+        "type": "REGIONAL",
+        "regions": [
+            "asia-east1"
+        ]
+    }
+}

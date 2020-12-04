@@ -1,0 +1,46 @@
+{
+    "name": "services/6F81-5844-456A/skus/326E-4200-7C31",
+    "skuId": "326E-4200-7C31",
+    "description": "Memory Optimized Upgrade Premium for Memory-optimized Instance Ram running in APAC",
+    "category": {
+        "serviceDisplayName": "Compute Engine",
+        "resourceFamily": "Compute",
+        "resourceGroup": "RAM",
+        "usageType": "OnDemand"
+    },
+    "serviceRegions": [
+        "asia-east1"
+    ],
+    "pricingInfo": [
+        {
+            "summary": "",
+            "pricingExpression": {
+                "usageUnit": "GiBy.h",
+                "usageUnitDescription": "gibibyte hour",
+                "baseUnit": "By.s",
+                "baseUnitDescription": "byte second",
+                "baseUnitConversionFactor": 3865470566400,
+                "displayQuantity": 1,
+                "tieredRates": [
+                    {
+                        "startUsageAmount": 0,
+                        "unitPrice": {
+                            "currencyCode": "USD",
+                            "units": "0",
+                            "nanos": 769925
+                        }
+                    }
+                ]
+            },
+            "currencyConversionRate": 1,
+            "effectiveTime": "2020-12-02T11:52:52.691Z"
+        }
+    ],
+    "serviceProviderName": "Google",
+    "geoTaxonomy": {
+        "type": "REGIONAL",
+        "regions": [
+            "asia-east1"
+        ]
+    }
+}
