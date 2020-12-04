@@ -143,7 +143,7 @@ const getProductPricing = async (instanceType, region, os) => {
         }
 
         return pricing.getProducts(params).promise()
-            .then((data) => {
+            .then(async (data) => {
                 if (data) {
                     if (data.PriceList.length > 0) {
                         if (!fs.existsSync(`${osFolder}/${instanceType}.json`)) {
@@ -153,7 +153,7 @@ const getProductPricing = async (instanceType, region, os) => {
                     }
 
                     if (data.NextToken) {
-                        getProducts(data.NextToken);
+                        await getProducts(data.NextToken);
                     }
                 }
             })
@@ -163,7 +163,7 @@ const getProductPricing = async (instanceType, region, os) => {
             })
     }
 
-    getProducts();
+    await getProducts();
 }
 
 exports.getAwsPricing = async (awsInput, cb) => {
@@ -185,7 +185,7 @@ exports.getAwsPricing = async (awsInput, cb) => {
             promiseArray.push(getProductPricing(instanceType.Value, inputArgs.region, inputArgs.os))
         })
 
-        Promise.all(promiseArray).then(() => {
+        Promise.allSettled(promiseArray).then(() => {
             instanceTypes.forEach((instanceType) => {
                 allInstancePricingValues[instanceType.Value] = getCosting(instanceType.Value, inputArgs.region, inputArgs.os)
             })
