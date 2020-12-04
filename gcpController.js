@@ -117,14 +117,13 @@ const calPerMonthPrice = (resourceData,durationInMonth) =>{
     return totalPrice = startUsageAmount + (nanos/Math.pow(10,9))*730*durationInMonth
 }
 
-exports.servicePriceJson  = (req, res) =>{
-    console.log(req.query)
-    let machine = req.query.machine;
-    let region = req.query.machineRegion;
-    let OS  = req.query.os ? req.query.os  : "";
-    let storage = req.query.storage ? req.query.storage : "";
-    let usageType = req.query.usageType ? req.query.usageType : "";
-    let custom = req.query.custom ? req.query.custom : "";
+exports.servicePriceJson  = (gcpInput) =>{
+    let machine = gcpInput.machine;
+    let region = gcpInput.machineRegion;
+    let OS  = gcpInput.os ? gcpInput.os  : "";
+    let storage = gcpInput.storage ? gcpInput.storage : "";
+    let usageType = gcpInput.usageType ? gcpInput.usageType : "";
+    let custom = gcpInput.custom ? gcpInput.custom : "";
     let mchineObj = {};
     let machineSeries = "";
     MACHINES.forEach(sys =>{

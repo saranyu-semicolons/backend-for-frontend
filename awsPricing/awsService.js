@@ -166,8 +166,15 @@ const getProductPricing = async (instanceType, region, os) => {
     getProducts();
 }
 
-exports.getAwsPricing = async (inputArgs, cb) => {
+exports.getAwsPricing = async (awsInput, cb) => {
     //get Series types
+    let inputArgs = {
+        series : awsInput.series ? awsInput.series : "",
+        os : awsInput.os ? awsInput.os : "Linux",
+        region : awsInput.region ? awsInput.region : "Asia Pacific (Mumbai)",
+        //instanceType : awsInput.instanceType ? awsInput.instanceType : ""
+    }
+
     const allInstancePricingValues = {};
     let cheapestAnnualPricingStrategy = {};
     cheapestAnnualPricingStrategy['annualCost'] = 99999999999;
@@ -248,7 +255,9 @@ exports.getAwsPricing = async (inputArgs, cb) => {
             cheapestAnnualPricingStrategy['totalPriceArray'] = priceArray;
             cheapestAnnualPricingStrategy['metadata'] = {
                 instanceTypes : instanceTypes.map((ins) => ins.Value),
-                pricingStrategies : ["On Demand","Reserved Standard","Reserved Convertible"]
+                pricingModels : ["On Demand","Reserved Standard","Reserved Convertible"],
+                reservationTerms : ["1 yr","3 yr"],
+                paymentOptions : ["No Upfront", "Partial Upfront", "Full Upfront"]
             }
             cb(null,cheapestAnnualPricingStrategy)
 
