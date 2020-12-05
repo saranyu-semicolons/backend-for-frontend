@@ -73,12 +73,14 @@ const returnMachineAvailableSeries = (machine) =>{
             machineSeries = "n2d-"
         }else if(machine.includes("n2")){
             machineSeries = "n2-"
-        }else if(machine.includes("c1")){
-            machineSeries = "c1-"
+        }else if(machine.includes("c2")){
+            machineSeries = "c2-"
         }else if(machine.includes("m2")){
             machineSeries = "m2-"
         }else if(machine.includes("n1")){
             machineSeries = "n1-"
+        }else if(machine.includes("m1")){
+            machineSeries = "m1- "
         }
     MACHINES.forEach(sys =>{
         if(sys.machine.indexOf(`${machineSeries}`) != -1){
@@ -187,12 +189,14 @@ const servicePriceJson  = (gcpInput) =>{
         machineSeries = "N2D "
     }else if(series.toUpperCase() ==="N2"){
         machineSeries = "N2 "
-    }else if(series.toUpperCase() ==="C1"){
+    }else if(series.toUpperCase() ==="C2"){
         machineSeries = "Compute optimized "
     }else if(series.toUpperCase() ==="M2"){
         machineSeries = "Memory-optimized "
     }else if(series.toUpperCase() ==="N1"){
         machineSeries = "N1 "
+    }else if(series.toUpperCase() ==="M1"){
+        machineSeries = "Memory-optimized "
     }
     if(machine !== ""){
         MACHINES.forEach(sys =>{
@@ -206,12 +210,14 @@ const servicePriceJson  = (gcpInput) =>{
             machineSeries = "N2D "
         }else if(mchineObj.machine.includes("n2")){
             machineSeries = "N2 "
-        }else if(mchineObj.machine.includes("c1")){
+        }else if(mchineObj.machine.includes("c2")){
             machineSeries = "Compute optimized "
         }else if(mchineObj.machine.includes("m2")){
             machineSeries = "Memory-optimized "
         }else if(mchineObj.machine.includes("n1")){
             machineSeries = "N1 "
+        }else if(mchineObj.machine.includes("m1")){
+            machineSeries = "Memory-optimized "
         }
     }else{
         MACHINES.forEach(sys =>{
@@ -393,7 +399,7 @@ const servicePriceJson  = (gcpInput) =>{
 }
 
 
-const costCalcution = () =>{
+const costCalculation = () =>{
 
 }
 
