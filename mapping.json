@@ -1,0 +1,212 @@
+{
+    "1" : {
+        "activity" : "Web Services",
+        "aws" : ["a1"],
+        "gcp" : ["e2"]
+    },
+    "2" : {
+        "activity" : "Containrized microservices",
+        "aws" : ["a1"],
+        "gcp" : ["e2"]
+    },
+    "3" : {
+        "activity" : "Small and Midsized Databases",
+        "aws" : ["m5","m5a"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "4" : {
+        "activity" : "Data Processing that required Additional Memory",
+        "aws" : ["m5","m5a"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "5" : {
+        "activity" : "Caching Fleets",
+        "aws" : ["m5","m5a"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "6" : {
+        "activity" : "Backend servers for SAP, Microsoft SharePoint, cluster computing, and other enterprise applications",
+        "aws" : ["m5","m5a"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "7" : {
+        "activity" : "Application Services",
+        "aws" : ["m6g","m6gd"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "8" : {
+        "activity" : "Microservices",
+        "aws" : ["m6g","m6gd"],
+        "gcp" : ["m2","m1"]
+    },
+    "9" : {
+        "activity" : "Gaming Servers",
+        "aws" : ["m6g","m6gd"],
+        "gcp" : ["m2","m1"]
+    },
+    "10" : {
+        "activity" : "Midsize data stores",
+        "aws" : ["m6g","m6gd"],
+        "gcp" : ["m2","m1"]
+    },
+    "11" : {
+        "activity" : "Caching Fleets",
+        "aws" : ["m6g","m6gd"],
+        "gcp" : ["m2","m1"]
+    },
+    "12" : {
+        "activity" : "Websites and web applications",
+        "aws" : ["t2","t3","t3a","t4g"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "13" : {
+        "activity" : "Code repositories",
+        "aws" : ["t2","t3","t3a","t4g"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "14" : {
+        "activity" : "Development, build, test, and staging environments",
+        "aws" : ["t2","t3","t3a","t4g"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "15" : {
+        "activity" : "Microservices",
+        "aws" : ["t2","t3","t3a","t4g"],
+        "gcp" : ["n2","n2d","n1"]
+    },
+    "16" : {
+        "activity" : "Batch processing workloads",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "17" : {
+        "activity" : "Media transcoding",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "18" : {
+        "activity" : "High-performance web servers",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "19" : {
+        "activity" : "High-performance computing (HPC)",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "20" : {
+        "activity" : "Scientific modeling",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "21" : {
+        "activity" : "Dedicated gaming servers and ad serving engines",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "22" : {
+        "activity" : "Machine learning inference and other compute-intensive applications",
+        "aws" : ["c5","c5n"],
+        "gcp" : ["c2"]
+    },
+    "23" : {
+        "activity" : "High-performance computing (HPC)",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "24" : {
+        "activity" : "Batch processing",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "25" : {
+        "activity" : "Ad serving",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "26" : {
+        "activity" : "Video encoding",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "27" : {
+        "activity" : "Gaming servers",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "28" : {
+        "activity" : "Scientific modeling",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "29" : {
+        "activity" : "Distributed analytics",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "30" : {
+        "activity" : "CPU-based machine learning inference",
+        "aws" : ["c6g","c6gd"],
+        "gcp" : ["c2"]
+    },
+    "31" : {
+        "activity" : "High-performance, relational (MySQL) and NoSQL (MongoDB, Cassandra) databases",
+        "aws" : ["r5","r5a","r5n"],
+        "gcp" : ["m2","m1"]
+    },
+    "32" : {
+        "activity" : "Distributed web scale cache stores that provide in-memory caching of key-value type data (Memcached and Redis)",
+        "aws" : ["r5","r5a","r5n"],
+        "gcp" : ["m2","m1"]
+    },
+    "33" : {
+        "activity" : "In-memory databases using optimized data storage formats and analytics for business intelligence (for example, SAP HANA)",
+        "aws" : ["r5","r5a","r5n"],
+        "gcp" : ["m2","m1"]
+    },
+    "34" : {
+        "activity" : "Applications performing real-time processing of big unstructured data (financial services, Hadoop/Spark clusters).",
+        "aws" : ["r5","r5a","r5n"],
+        "gcp" : ["m2","m1"]
+    },
+    "35" : {
+        "activity" : "High-performance computing (HPC) and Electronic Design Automation (EDA) applications.",
+        "aws" : ["r5","r5a","r5n"],
+        "gcp" : ["m2","m1"]
+    },
+    "36" : {
+        "activity" : "Open-source databases (for example, MySQL, MariaDB, and PostgreSQL)",
+        "aws" : ["r6g","r6gd"],
+        "gcp" : ["m2","m1"]
+    },
+    "37" : {
+        "activity" : "In-memory caches (for example, Memcached, Redis, and KeyDB)",
+        "aws" : ["r6g","r6gd"],
+        "gcp" : ["m2","m1"]
+    },
+    "38" : {
+        "activity" : "In-memory databases such as SAP HANA, including SAP-certified support for Business Suite S/4HANA, Business Suite on HANA (SoH), Business Warehouse on HANA (BW), and Data Mart Solutions on HANA. For more information, see SAP HANA on the AWS Cloud.",
+        "aws" : ["x1","x1e"],
+        "gcp" : ["m2","m1"]
+    },
+    "39" : {
+        "activity" : "Big-data processing engines such as Apache Spark or Presto.",
+        "aws" : ["x1","x1e"],
+        "gcp" : ["m2","m1"]
+    },
+    "40" : {
+        "activity" : "High-performance computing (HPC) applications.",
+        "aws" : ["x1","x1e"],
+        "gcp" : ["m2","m1"]
+    },
+    "41" : {
+        "activity" : "Electronic Design Automation (EDA)",
+        "aws" : ["z1d"],
+        "gcp" : ["m2","m1"]
+    },
+    "42" : {
+        "activity" : "Relational database workloads",
+        "aws" : ["z1d"],
+        "gcp" : ["m2","m1"]
+    }
+}

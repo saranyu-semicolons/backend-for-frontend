@@ -1,0 +1,46 @@
+{
+    "name": "services/6F81-5844-456A/skus/700D-1C95-9737",
+    "skuId": "700D-1C95-9737",
+    "description": "Memory Optimized Upgrade Premium for Memory-optimized Instance Core running in APAC",
+    "category": {
+        "serviceDisplayName": "Compute Engine",
+        "resourceFamily": "Compute",
+        "resourceGroup": "CPU",
+        "usageType": "OnDemand"
+    },
+    "serviceRegions": [
+        "asia-east1"
+    ],
+    "pricingInfo": [
+        {
+            "summary": "",
+            "pricingExpression": {
+                "usageUnit": "h",
+                "usageUnitDescription": "hour",
+                "baseUnit": "s",
+                "baseUnitDescription": "second",
+                "baseUnitConversionFactor": 3600,
+                "displayQuantity": 1,
+                "tieredRates": [
+                    {
+                        "startUsageAmount": 0,
+                        "unitPrice": {
+                            "currencyCode": "USD",
+                            "units": "0",
+                            "nanos": 5242965
+                        }
+                    }
+                ]
+            },
+            "currencyConversionRate": 1,
+            "effectiveTime": "2020-12-02T11:52:52.691Z"
+        }
+    ],
+    "serviceProviderName": "Google",
+    "geoTaxonomy": {
+        "type": "REGIONAL",
+        "regions": [
+            "asia-east1"
+        ]
+    }
+}
