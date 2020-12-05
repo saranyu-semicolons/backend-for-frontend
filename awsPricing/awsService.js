@@ -273,7 +273,7 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
             region: awsInput.region ? awsInput.region : '',
             machineType: awsInput.instanceType ? awsInput.instanceType : '',
             pricingModel: awsInput.pricingModel ? awsInput.pricingModel : '',
-            reservationTerm: awsInput.reservationTerm ? awsInput.pricingModel : '',
+            reservationTerm: awsInput.reservationTerm ? awsInput.reservationTerm : '',
             paymentOption: awsInput.paymentOption ? awsInput.paymentOption : ''
         }
     }
@@ -391,8 +391,8 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
 
                         let tempObject = {
                             annualCost: annualCost,
-                            monthly: Number(monthlyPricingObject[ps][rps]['monthly']),
-                            upfront: Number(monthlyPricingObject[ps][rps]['upfront']),
+                            monthly: Number(reservedPsValue['monthly']),
+                            upfront: Number(reservedPsValue['upfront']),
                             instanceType: dataObject.attributes.instanceType,
                             os: dataObject.attributes.operatingSystem,
                             location: dataObject.attributes.location,
@@ -456,14 +456,16 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
                     for (let yr = 0; yr < 3; yr++) {
                         monthlyExpense += cheapestAnnualPricingStrategy.upfront;
                         for (let i = 1; i <= 12; i++) {
-                            priceArray.push({month: (yr*12) + i, totalPrice: Number((monthlyExpense + cheapestAnnualPricingStrategy.monthly).toFixed(2))})
+                            monthlyExpense += cheapestAnnualPricingStrategy.monthly;
+                            priceArray.push({month: (yr*12) + i, totalPrice: Number(monthlyExpense.toFixed(2))})
                          }
                     }
 
                 }else if(cheapestAnnualPricingStrategy.reservationTerm == "3yr"){
                     let monthlyExpense = cheapestAnnualPricingStrategy.upfront;
                     for(let i=1; i<=36; i++){
-                        priceArray.push({month:i, totalPrice: Number((monthlyExpense + cheapestAnnualPricingStrategy.monthly).toFixed(2))})
+                        monthlyExpense += cheapestAnnualPricingStrategy.monthly
+                        priceArray.push({month:i, totalPrice: Number(monthlyExpense.toFixed(2))})
                     }
                 }
             }
