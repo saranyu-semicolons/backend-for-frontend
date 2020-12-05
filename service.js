@@ -4,7 +4,7 @@ const gcp = require("./gcpController")
 exports.getPricingInformation = (req, res, cb) => {
     aws.getAwsPricing(req.body.aws, (err, awsData) => {
         console.log("Final data ---",awsData);
-        let gcpData = gcp.servicePriceJson(req.body.gcp, res);
+        let gcpData = gcp.servicePriceJson(req.body.gcp);
         let consolidatedData = {
             totalPriceArray : {
                 AWS : awsData.totalPriceArray,

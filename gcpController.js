@@ -36,11 +36,32 @@ const returnUsageTypes = (resourceFamily,serviceRegion,resourceGroup) =>{
                 resourceGroups.forEach(resource =>{
                     if(resource == resourceGroup){
                         usageTypes = fs.readdirSync(`./GCP_DATA/skus/Compute-Engine/${resourceFamily}/${region}/${resource}`);
+                        usageTypes = usageTypes.filter(elem=>{
+                            return elem !== 'Preemptible';
+                        })
                     }
                 })
             }
         })   
     return usageTypes
+}
+
+const returnServiceRegions = (resourceFamily) =>{
+    let serviceRegions = fs.readdirSync(`./GCP_DATA/skus/Compute-Engine/${resourceFamily}`); 
+return serviceRegions
+}
+
+const filterServiceRegions = (resourceFamily,serviceRegion) =>{
+    let serviceRegions = serviceRegion.filter((region=>{
+        let resourceGroups = fs.readdirSync(`./GCP_DATA/skus/Compute-Engine/${resourceFamily}/${region}`);
+        return resourceGroups.indexOf("CPU") !== -1 && resourceGroups.indexOf("RAM") !== -1
+    }))
+    return serviceRegions
+}
+
+const filterOperationSysLicenses = (resourceFamily,serviceRegion) =>{
+    let availableOS = fs.readdirSync(`./GCP_DATA/skus/Compute-Engine/${resourceFamily}/${serviceRegion}`);
+    return availableOS
 }
 
 const returnMachineAvailableSeries = (machine) =>{
@@ -84,7 +105,6 @@ const filterMachine = (machineSeries,jsonData,usagetype,custom) =>{
     })
 }
 const calcuateMinimalPriceResource = (resourceData) => {
-    let pricingInfo = [];
     
     resourceData = resourceData.filter(elem=>{
         return elem.usage !== 'Preemptible';
@@ -94,20 +114,16 @@ const calcuateMinimalPriceResource = (resourceData) => {
         let unitPrice = obj.fileData.pricingInfo[0].pricingExpression.tieredRates[0].unitPrice
         let nanos = unitPrice.nanos
         let totalPrice = startUsageAmount + (nanos/Math.pow(10,9))
-        pricingInfo.push(totalPrice)
+        obj.totalPrice = totalPrice
     }
-    let minValue = Math.min(...pricingInfo);
-    let index =-1;
-    for (const [ind,obj] of  resourceData.entries()) {
-        let startUsageAmount = obj.fileData.pricingInfo[0].pricingExpression.tieredRates[0].startUsageAmount
-        let unitPrice = obj.fileData.pricingInfo[0].pricingExpression.tieredRates[0].unitPrice
-        let nanos = unitPrice.nanos
-        let totalPrice = startUsageAmount + (nanos/Math.pow(10,9))
-        if(totalPrice === minValue){
-            index = ind;  
+    
+    let minValue = resourceData[0] !== 0 ? resourceData[0] : resourceData[1]
+    for(let i=1;i<resourceData.length;i++){
+            if(minValue.totalPrice > resourceData[i].totalPrice &&  resourceData[i].totalPrice !== 0){
+                minValue = resourceData[i]
         }
-    }    
-    return resourceData[index];
+    }
+    return minValue
 }
 
 const calPerMonthPrice = (resourceData,durationInMonth) =>{
@@ -117,82 +133,270 @@ const calPerMonthPrice = (resourceData,durationInMonth) =>{
     return totalPrice = startUsageAmount + (nanos/Math.pow(10,9))*730*durationInMonth
 }
 
+const calPerMonthStoragePrice = (resourceData,durationInMonth,storageSize) =>{
+    let startUsageAmount = resourceData.fileData.pricingInfo[0].pricingExpression.tieredRates[0].startUsageAmount
+    let unitPrice = resourceData.fileData.pricingInfo[0].pricingExpression.tieredRates[0].unitPrice
+    let nanos = unitPrice.nanos
+    return totalPrice = startUsageAmount + (nanos/Math.pow(10,9))*durationInMonth*storageSize
+}
+
 exports.servicePriceJson  = (gcpInput) =>{
-    let machine = gcpInput.machine;
-    let region = gcpInput.machineRegion;
+    let series = gcpInput.series;
+    let machine = gcpInput.machine ? gcpInput.machine : "";
+    let region = gcpInput.machineRegion ? gcpInput.machineRegion : "";
     let OS  = gcpInput.os ? gcpInput.os  : "";
     let storage = gcpInput.storage ? gcpInput.storage : "";
     let usageType = gcpInput.usageType ? gcpInput.usageType : "";
     let custom = gcpInput.custom ? gcpInput.custom : "";
     let mchineObj = {};
+    let mchineObjArr = []
     let machineSeries = "";
-    MACHINES.forEach(sys =>{
-        if(sys.machine === machine){
-            mchineObj = sys;
-        }
-    })
-    if(mchineObj.machine.includes("e2")){
+    let storageData;
+    if(OS !== ""){
+        filterOS(OS)
+    }
+
+    if(series.toUpperCase() === "E2"){
         machineSeries = "E2 "
-    }else if(mchineObj.machine.includes("n2d")){
+    } else if(series.toUpperCase() ==="N2D"){
         machineSeries = "N2D "
-    }else if(mchineObj.machine.includes("n2")){
+    }else if(series.toUpperCase() ==="N2"){
         machineSeries = "N2 "
-    }else if(mchineObj.machine.includes("c1")){
+    }else if(series.toUpperCase() ==="C1"){
         machineSeries = "C1 "
-    }else if(mchineObj.machine.includes("m2")){
+    }else if(series.toUpperCase() ==="M2"){
         machineSeries = "M2 "
-    }else if(mchineObj.machine.includes("n1")){
+    }else if(series.toUpperCase() ==="N1"){
         machineSeries = "N1 "
     }
-    let {CPU,RAM} = mchineObj;
-    let OSJsonData = {};
-    let storageJsonData = {};
-    let cpuJsonData = readJsonForResource("Compute",region,"CPU")
-    let ramJsonData = readJsonForResource("Compute",region,"RAM")
-    if(OS !== ""){
-        OSJsonData = readJsonForResource("License","global",OS)
-    }
-    if(storage !== ""){
-        storageJsonData = readJsonForResource("Storage",region,storage)
-    }
-    if(usageType === ""){
-        cpuJsonData = filterMachine(machineSeries,cpuJsonData);
-        ramJsonData = filterMachine(machineSeries,ramJsonData);
-        cpuResource = calcuateMinimalPriceResource(cpuJsonData);
-        ramResource = calcuateMinimalPriceResource(ramJsonData);
+    if(machine !== ""){
+        MACHINES.forEach(sys =>{
+            if(sys.machine === machine){
+                mchineObj = sys;
+            }
+        })
+        if(mchineObj.machine.includes("e2")){
+            machineSeries = "E2 "
+        }else if(mchineObj.machine.includes("n2d")){
+            machineSeries = "N2D "
+        }else if(mchineObj.machine.includes("n2")){
+            machineSeries = "N2 "
+        }else if(mchineObj.machine.includes("c1")){
+            machineSeries = "C1 "
+        }else if(mchineObj.machine.includes("m2")){
+            machineSeries = "M2 "
+        }else if(mchineObj.machine.includes("n1")){
+            machineSeries = "N1 "
+        }
     }else{
-        if(custom !== ""){
-            cpuResource = filterMachine(machineSeries,cpuJsonData,usageType,custom);
-            cpuResource = cpuResource[0]
-            ramResource = filterMachine(machineSeries,ramJsonData,usageType, custom);
-            ramResource = ramResource[0];
-        } else {
-            cpuResource = filterMachine(machineSeries,cpuJsonData,usageType);
-            cpuResource = cpuResource[0]
-            ramResource = filterMachine(machineSeries,ramJsonData,usageType);
-            ramResource = ramResource[0];
+        MACHINES.forEach(sys =>{
+            if(sys.series.trim().toLocaleUpperCase() === series.trim().toLocaleUpperCase()){
+                mchineObjArr.push(sys);
+            }
+        })
+    }
+    let serverRegions = returnServiceRegions("Compute");
+    serverRegions = filterServiceRegions("Compute",serverRegions)
+    let cpuJsonData ;
+    let ramJsonData ;
+    let cpuResourceDataArr = [];
+    let ramResourceDataArr = [];
+    let cpuResource ;
+    let ramResource ;
+    let totalPriceArray = [];
+    if(region == ""){
+        for (const [index,region] of serverRegions.entries()) {
+            cpuJsonData = readJsonForResource("Compute",region,"CPU");
+            ramJsonData = readJsonForResource("Compute",region,"RAM");
+            if(usageType === ""){
+                if(cpuJsonData.length >0){
+                    cpuJsonData = filterMachine(machineSeries,cpuJsonData);
+                    cpuResource = calcuateMinimalPriceResource(cpuJsonData);
+                }
+                if(ramJsonData.length >0){
+                    ramJsonData = filterMachine(machineSeries,ramJsonData);
+                    ramResource = calcuateMinimalPriceResource(ramJsonData);
+                }
+            }else{
+                if(custom !== ""){
+                    cpuResource = filterMachine(machineSeries,cpuJsonData,usageType,custom);
+                    if(cpuJsonData.length >0){
+                        cpuResource = cpuResource[0]
+                    }
+                    ramResource = filterMachine(machineSeries,ramJsonData,usageType, custom);
+                    if(ramJsonData.length >0){
+                        ramResource = ramResource[0];
+                    }
+                } else {
+                    cpuResource = filterMachine(machineSeries,cpuJsonData,usageType);
+                    if(cpuJsonData.length >0){
+                        cpuResource = cpuResource[0]
+                    }
+                    ramResource = filterMachine(machineSeries,ramJsonData,usageType);
+                    if(ramJsonData.length >0){
+                        ramResource = ramResource[0];
+                    }
+                }
+            }
+            ramResourceDataArr.push(ramResource);
+            cpuResourceDataArr.push(cpuResource);
+            cpuResource = calcuateMinimalPriceResource(cpuResourceDataArr);
+            ramResource = calcuateMinimalPriceResource(ramResourceDataArr);
+        }
+        
+    }else{
+        cpuJsonData = readJsonForResource("Compute",region,"CPU");
+        ramJsonData = readJsonForResource("Compute",region,"RAM");
+        if(usageType === ""){
+            cpuJsonData = filterMachine(machineSeries,cpuJsonData);
+            ramJsonData = filterMachine(machineSeries,ramJsonData);
+            cpuResource = calcuateMinimalPriceResource(cpuJsonData);
+            ramResource = calcuateMinimalPriceResource(ramJsonData);
+        }else{
+            if(custom !== ""){
+                cpuResource = filterMachine(machineSeries,cpuJsonData,usageType,custom);
+                cpuResource = cpuResource[0]
+                ramResource = filterMachine(machineSeries,ramJsonData,usageType, custom);
+                ramResource = ramResource[0];
+            } else {
+                cpuResource = filterMachine(machineSeries,cpuJsonData,usageType);
+                cpuResource = cpuResource[0]
+                ramResource = filterMachine(machineSeries,ramJsonData,usageType);
+                ramResource = ramResource[0];
+            }
         }
     }
-    let totalPriceArray = [];
-    for(let i=1;i<=36;i++){
-        let priceObj = {}
-        let cpuPrice = calPerMonthPrice(cpuResource,i)
-        let ramPrice = calPerMonthPrice(ramResource,i)
-        priceObj.month = i;
-        priceObj.totalPrice = ((CPU * cpuPrice )+(RAM * ramPrice));
-        totalPriceArray.push(priceObj)
+
+    if(machine == "" && mchineObjArr.length > 0){
+        mchineObjArr.forEach((mchineObj)=>{
+            let {CPU,RAM} = mchineObj;
+            let cpuPrice = calPerMonthPrice(cpuResource,1)
+            let ramPrice = calPerMonthPrice(ramResource,1)
+            mchineObj.totalPrice = ((CPU * cpuPrice )+(RAM * ramPrice));
+        })
+        mchineObj = mchineObjArr[0];
+        for(let i=1;i<mchineObjArr.length;i++){
+            if(mchineObj.totalPrice > mchineObjArr[i].totalPrice){
+                mchineObj = mchineObjArr[i]
+            }
+        }
     }
+    
+    if(storage !== ""){
+        storageData = filterStorage(storage)
+    }else{
+        let storageObj = {};
+        storageObj.region = region ? region : cpuResource.fileData.serviceRegions[0];
+        storageObj.usage = cpuResource.usage;
+        storageObj.storageSize = 10;
+        storageObj.type = "LocalSSD"
+        storageData = filterStorage(storageObj)
+    }
+        let {CPU,RAM} = mchineObj;
+        for(let i=1;i<=36;i++){
+            let priceObj = {}
+            let cpuPrice = calPerMonthPrice(cpuResource,i)
+            let ramPrice = calPerMonthPrice(ramResource,i)
+            priceObj.month = i;
+            if(storageData){
+                priceObj.totalPrice = ((CPU * cpuPrice )+(RAM * ramPrice)) + storageData.totalStoragePrice;
+            }else{
+                priceObj.totalPrice = ((CPU * cpuPrice )+(RAM * ramPrice));
+            }
+            totalPriceArray.push(priceObj)
+        }
+
     let returnObj = {}
-    returnObj.instanceType = machineSeries;
-    returnObj.machine = machine;
-    returnObj.CPU = CPU
-    returnObj.RAM = RAM;
+    returnObj.instanceType = mchineObj.series.toUpperCase();
+    returnObj.machine = mchineObj.machine;
+    returnObj.CPU = mchineObj.CPU
+    returnObj.RAM = mchineObj.RAM;
+    returnObj.region = cpuResource.fileData.serviceRegions
     returnObj.cpuPricingStrategy = cpuResource.usage
     returnObj.ramPricingStrategy = ramResource.usage
     returnObj.totalPriceArray = totalPriceArray;
     returnObj.metadata = {};
-    returnObj.metadata.cpuUsageTypes = returnUsageTypes("Compute",region,"CPU");
-    returnObj.metadata.RAMUsageTypes = returnUsageTypes("Compute",region,"CPU");
-    returnObj.metadata.machineAvailableSeries = returnMachineAvailableSeries(machine)
+    returnObj.metadata.cpuUsageTypes = returnUsageTypes("Compute",cpuResource.fileData.serviceRegions[0],"CPU");
+    returnObj.metadata.ramUsageTypes = returnUsageTypes("Compute",cpuResource.fileData.serviceRegions[0],"RAM");
+    returnObj.metadata.machineAvailableSeries = returnMachineAvailableSeries(mchineObj.machine)
+    returnObj.metadata.serviceRegions = serverRegions;
+    returnObj.metadata.availableOS = filterOperationSysLicenses("License","global");
+    returnObj.metadata.availableOSRegion = "global"
+    returnObj.metadata.availableStorage = [{type:"LocalSSD",usage:["Commit1Yr","Commit3Yr","OnDemand"]},
+    {type:"PDStandard",usage:["OnDemand"]},{type:"SSD",usage:["OnDemand"]}];
+    if(storageData){
+        returnObj.storageData = {};
+        returnObj.storageData.usage =  storageData.usage
+        returnObj.storageData.description =  storageData.fileData.description;
+        returnObj.storageData.serviceRegions =  storageData.fileData.serviceRegions;
+        returnObj.storageData.storageSize = storageData.storageSize
+        returnObj.storageData.totalStoragePrice = storageData.totalStoragePrice
+
+
+    }
     return returnObj;
+}
+
+const filterOS = (OS) =>{
+    let OSJsonData = {};
+        OSJsonData = readJsonForResource("License","global",OS)
+}
+
+const filterStorage = (storage) =>{
+    let region = storage.region ? storage.region : "asia-east1";
+    let usage = storage.usage ? storage.usage : "Commit3Yr";
+    let type = storage.type ? storage.type : "LocalSSD"
+    let storageSize = storage.storageSize ? storage.storageSize : 10;
+    let storageJsonData = {};
+    let regionArr = [];
+    let typeArr = ["LocalSSD","SSD","PDStandard"];
+    let allstorageJsonData = [];
+    if(region == ""){
+        regionArr = returnServiceRegions("Storage");
+        if(type == ""){
+            regionArr.forEach(region =>{
+                typeArr.forEach(type =>{
+                    storageJsonData = readJsonForResource("Storage",region,type)
+                    allstorageJsonData.push(storageJsonData)
+                })
+            })
+        }else{
+            regionArr.forEach(region =>{
+                    storageJsonData = readJsonForResource("Storage",region,type)
+                    allstorageJsonData.push(storageJsonData)
+            })
+        }
+    }else{
+        if(type == ""){
+            typeArr.forEach(type =>{
+                storageJsonData = readJsonForResource("Storage",region,type)
+                allstorageJsonData.push(storageJsonData)
+            })
+        }else{
+            storageJsonData = readJsonForResource("Storage",region,type) 
+            allstorageJsonData.push(storageJsonData)
+        }
+    }
+    allstorageJsonData =allstorageJsonData.filter(storageJsonData =>{
+        return storageJsonData.length > 0 
+    })
+    let minimalStorageJson ;
+    if(allstorageJsonData.length ===1){
+        if(usage !==""){
+            storageJsonData = allstorageJsonData[0];
+            storageJsonData.forEach((storage) =>{
+                if(storage.usage == usage){
+                    minimalStorageJson = storage
+                }   
+            })
+            minimalStorageJson.storageSize = storageSize;
+            minimalStorageJson.totalStoragePrice = calPerMonthStoragePrice(minimalStorageJson,1,storageSize)
+        }else{
+            storageJsonData = allstorageJsonData[0];
+            minimalStorageJson = calcuateMinimalPriceResource(storageJsonData);
+            minimalStorageJson.storageSize = storageSize;
+            minimalStorageJson.totalStoragePrice = calPerMonthStoragePrice(minimalStorageJson,1,storageSize)
+        }   
+    }
+    return minimalStorageJson
 }
