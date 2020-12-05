@@ -102,7 +102,11 @@ const getAllInstanceTypes = async (filter) => {
                     return await getAttrs(data.NextToken);
                 }
 
-                let filteredAttrs = allAttributes.filter((attr) => attr.Value.startsWith(filter))
+                let filteredAttrs = new Set();
+                allAttributes.forEach((attr) => {
+                    if(filter.includes(attr.Value.split(".")[0]))
+                        filteredAttrs.add(attr);
+                })
                 return filteredAttrs;
             })
             .catch(err => {
@@ -171,7 +175,7 @@ const getAllOs = async (filter) => {
     return getOS();
 }
 
-const getProductPricing = async (instanceType, region, os) => {
+const getProductPricing = async (instanceType) => {
 
     let productsList = [];
     const params = {
@@ -229,7 +233,7 @@ const getProductPricing = async (instanceType, region, os) => {
                     await getProducts(data.NextToken);
                 }
 
-                if(productsList.length > 0 && !fs.existsSync(`${servicesFolder}/${instanceType}.json`)) {
+                if(productsList.length > 0) {
                     // const fsStream = fs.createWriteStream(`${servicesFolder}/${instanceType}.json`)
                     // fsStream.write(JSON.stringify(productsList))
                     // fsStream.end();
@@ -255,13 +259,15 @@ const getProductPricing = async (instanceType, region, os) => {
             })
     }
 
-    await getProducts();
+    if(!fs.existsSync(`${servicesFolder}/${instanceType}.json`)){
+        await getProducts();
+    }
 }
 
-exports.getAwsPricing = async (awsInput, cb) => {
+exports.getAwsPricing = async (series, awsInput, cb) => {
     //get Series types
     let inputArgs = {
-        series : awsInput.series ? awsInput.series : "",
+        series : series,
         os : awsInput.os,
         region : awsInput.region,
         machineType : awsInput.instanceType,
@@ -269,6 +275,7 @@ exports.getAwsPricing = async (awsInput, cb) => {
 
     let allRegionsList = new Set();
     let allOsList = new Set();
+    let allInstanceList = [];
 
     const allInstancePricingValues = {};
     let cheapestAnnualPricingStrategy = {};
@@ -277,7 +284,7 @@ exports.getAwsPricing = async (awsInput, cb) => {
         let promiseArray = []
         instanceTypes.forEach((instanceType) => {
             //Get Price Information
-            promiseArray.push(getProductPricing(instanceType.Value, inputArgs.region, inputArgs.os))
+            promiseArray.push(getProductPricing(instanceType.Value))
         })
 
         Promise.allSettled(promiseArray).then(() => {
@@ -286,6 +293,7 @@ exports.getAwsPricing = async (awsInput, cb) => {
                 if(tempData.parsedProductList.length > 0) {
                     allRegionsList = new Set([...allRegionsList, ...tempData.regionsList])
                     allOsList= new Set([...allOsList, ...tempData.osList])
+                    allInstanceList.push(instanceType.Value);
                     allInstancePricingValues[instanceType.Value] = tempData.parsedProductList;
                 }
             })
@@ -380,23 +388,33 @@ exports.getAwsPricing = async (awsInput, cb) => {
             //Return array and current object
             let priceArray = []
             
-            for(let i=1; i<=36; i++){
-                priceArray.push({month:i, totalPrice: Number((cheapestAnnualPricingStrategy.monthly * i).toFixed(2))})
+            
+            if(cheapestAnnualPricingStrategy.pricingStrategy == "On Demand" || cheapestAnnualPricingStrategy.upfront == 0){
+                for(let i=1; i<=36; i++){
+                    priceArray.push({month:i, totalPrice: Number((cheapestAnnualPricingStrategy.monthly * i).toFixed(2))})
+                }
             }
-            // if(cheapestAnnualPricingStrategy.pricingStrategy == "On Demand"){
-                
-            // }
-            // else {
-            //     if(cheapestAnnualPricingStrategy.reservationTerm == "1yr"){
+            else {
+                if(cheapestAnnualPricingStrategy.reservationTerm == "1yr"){
+                    let monthlyExpense = 0;
+                    for (let yr = 0; yr < 3; yr++) {
+                        monthlyExpense += cheapestAnnualPricingStrategy.upfront;
+                        for (let i = 1; i <= 12; i++) {
+                            priceArray.push({month: (yr*12) + i, totalPrice: Number((monthlyExpense + cheapestAnnualPricingStrategy.monthly).toFixed(2))})
+                         }
+                    }
 
-            //     }else if(cheapestAnnualPricingStrategy.reservationTerm == "3yr"){
-
-            //     }
-            // }
+                }else if(cheapestAnnualPricingStrategy.reservationTerm == "3yr"){
+                    let monthlyExpense = cheapestAnnualPricingStrategy.upfront;
+                    for(let i=1; i<=36; i++){
+                        priceArray.push({month:i, totalPrice: Number((monthlyExpense + cheapestAnnualPricingStrategy.monthly).toFixed(2))})
+                    }
+                }
+            }
 
             cheapestAnnualPricingStrategy['totalPriceArray'] = priceArray;
             cheapestAnnualPricingStrategy['metadata'] = {
-                instanceTypes : instanceTypes.map((ins) => ins.Value),
+                instanceTypes : allInstanceList,
                 operatingSystems : Array.from(allOsList),
                 regions : Array.from(allRegionsList),
                 pricingModels : ["On Demand","Reserved Standard","Reserved Convertible"],

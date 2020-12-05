@@ -1,10 +1,12 @@
 var aws = require('./awsPricing/awsService')
 const gcp = require("./gcpController")
+let mapping = require(process.cwd() + '/mapping.json')
 
 exports.getPricingInformation = (req, res, cb) => {
-    aws.getAwsPricing(req.body.aws, (err, awsData) => {
-        console.log("Final data ---",awsData);
-        let gcpData = gcp.servicePriceJson(req.body.gcp);
+
+    let seriesData = mapping[req.body.activityId];
+    aws.getAwsPricing(seriesData.aws, req.body.aws, (err, awsData) => {
+        let gcpData = gcp.servicePriceJson(seriesData.gcp, req.body.gcp);
         let consolidatedData = {
             totalPriceArray : {
                 AWS : awsData.totalPriceArray,
