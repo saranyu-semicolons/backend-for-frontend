@@ -6,6 +6,7 @@ exports.getPricingInformation = (req, res, cb) => {
 
     let seriesData = mapping[req.body.activityId];
     aws.getAwsPricing(seriesData.aws, req.body.aws, (err, awsData) => {
+        if(err) cb(err);
         let gcpData = gcp.gcpServicePriceJson(seriesData.gcp, req.body.gcp);
         let consolidatedData = {
             totalPriceArray : {
