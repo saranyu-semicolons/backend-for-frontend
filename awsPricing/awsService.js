@@ -266,11 +266,16 @@ const getProductPricing = async (instanceType) => {
 
 exports.getAwsPricing = async (series, awsInput, cb) => {
     //get Series types
-    let inputArgs = {
-        series : series,
-        os : awsInput.os,
-        region : awsInput.region,
-        machineType : awsInput.instanceType,
+    let inputArgs = {};
+    if(awsInput) {
+        inputArgs = {
+            os: awsInput.os ? awsInput.os : '',
+            region: awsInput.region ? awsInput.region : '',
+            machineType: awsInput.instanceType ? awsInput.instanceType : '',
+            pricingModel: awsInput.pricingModel ? awsInput.pricingModel : '',
+            reservationTerm: awsInput.reservationTerm ? awsInput.pricingModel : '',
+            paymentOption: awsInput.paymentOption ? awsInput.paymentOption : ''
+        }
     }
 
     let allRegionsList = new Set();
@@ -280,7 +285,7 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
     const allInstancePricingValues = {};
     let cheapestAnnualPricingStrategy = {};
     cheapestAnnualPricingStrategy['annualCost'] = 99999999999;
-    getAllInstanceTypes(inputArgs.series).then(instanceTypes => {
+    getAllInstanceTypes(series).then(instanceTypes => {
         let promiseArray = []
         instanceTypes.forEach((instanceType) => {
             //Get Price Information
@@ -297,56 +302,107 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
                     allInstancePricingValues[instanceType.Value] = tempData.parsedProductList;
                 }
             })
-            const findCheapestPricing = (pricingArray) => {
+            const findCheapestPricing = (pricingArray, pricingModel, reservationTerm = "1 yr", paymentOption = "No Upfront") => {
 
-                //Identify lowest
-                for (let dataObject of pricingArray) {
+                if(!pricingModel){
+                    //Identify lowest
+                    for (let dataObject of pricingArray) {
 
-                    let monthlyPricingObject = dataObject.monthlyPrices;
+                        let monthlyPricingObject = dataObject.monthlyPrices;
 
-                    for (let ps in monthlyPricingObject) {
-                        let annualCost, monthlyCost, upfrontCost;
-                        switch (ps) {
+                        for (let ps in monthlyPricingObject) {
+                            let annualCost, monthlyCost, upfrontCost;
+                            switch (ps) {
 
-                            case "onDemand":
-                                annualCost = Number((Number(monthlyPricingObject[ps]) * 12).toFixed(2));
-                                if (annualCost < cheapestAnnualPricingStrategy['annualCost']) {
-                                    let tempObject = {
-                                        annualCost: annualCost,
-                                        monthly: Number(monthlyPricingObject[ps]),
-                                        instanceType: dataObject.attributes.instanceType,
-                                        os: dataObject.attributes.operatingSystem,
-                                        location: dataObject.attributes.location,
-                                        pricingStrategy: "On Demand"
-                                    }
-                                    cheapestAnnualPricingStrategy = tempObject;
-                                }
-                                break;
-                            case "reserved":
-                                for (let rps in monthlyPricingObject[ps]) {
-
-                                    monthlyCost = Number(monthlyPricingObject[ps][rps]['monthly']) * 12;
-                                    upfrontCost = Number(monthlyPricingObject[ps][rps]['upfront']);
-                                    annualCost = Number((monthlyCost + upfrontCost).toFixed(2));
-                                    let psDetails = rps.split('_')
+                                case "onDemand":
+                                    annualCost = Number((Number(monthlyPricingObject[ps]) * 12).toFixed(2));
                                     if (annualCost < cheapestAnnualPricingStrategy['annualCost']) {
                                         let tempObject = {
                                             annualCost: annualCost,
-                                            monthly: Number(monthlyPricingObject[ps][rps]['monthly']),
-                                            upfront: Number(monthlyPricingObject[ps][rps]['upfront']),
+                                            monthly: Number(monthlyPricingObject[ps]),
                                             instanceType: dataObject.attributes.instanceType,
                                             os: dataObject.attributes.operatingSystem,
                                             location: dataObject.attributes.location,
-                                            pricingStrategy: `Reserved ${psDetails[0]}`,
-                                            reservationTerm: psDetails[1],
-                                            paymentType: psDetails[2]
-
+                                            pricingStrategy: "On Demand"
                                         }
                                         cheapestAnnualPricingStrategy = tempObject;
                                     }
-                                }
-                                break;
+                                    break;
+                                case "reserved":
+                                    for (let rps in monthlyPricingObject[ps]) {
+
+                                        monthlyCost = Number(monthlyPricingObject[ps][rps]['monthly']) * 12;
+                                        upfrontCost = Number(monthlyPricingObject[ps][rps]['upfront']);
+                                        annualCost = Number((monthlyCost + upfrontCost).toFixed(2));
+                                        let psDetails = rps.split('_')
+                                        if (annualCost < cheapestAnnualPricingStrategy['annualCost']) {
+                                            let tempObject = {
+                                                annualCost: annualCost,
+                                                monthly: Number(monthlyPricingObject[ps][rps]['monthly']),
+                                                upfront: Number(monthlyPricingObject[ps][rps]['upfront']),
+                                                instanceType: dataObject.attributes.instanceType,
+                                                os: dataObject.attributes.operatingSystem,
+                                                location: dataObject.attributes.location,
+                                                pricingStrategy: `Reserved ${psDetails[0]}`,
+                                                reservationTerm: psDetails[1],
+                                                paymentType: psDetails[2]
+
+                                            }
+                                            cheapestAnnualPricingStrategy = tempObject;
+                                        }
+                                    }
+                                    break;
+                            }
                         }
+                    }
+                } else if(pricingModel == "On Demand")
+                {
+                    for (let dataObject of pricingArray) {
+                        let onDemandPsValue = dataObject.monthlyPrices.onDemand;
+                        let annualCost = Number((Number(onDemandPsValue) * 12).toFixed(2));
+
+                        let tempObject = {
+                            annualCost: annualCost,
+                            monthly: Number(onDemandPsValue),
+                            instanceType: dataObject.attributes.instanceType,
+                            os: dataObject.attributes.operatingSystem,
+                            location: dataObject.attributes.location,
+                            pricingStrategy: "On Demand"
+                        }
+                        cheapestAnnualPricingStrategy = tempObject;
+                    }
+
+                } else {
+                    for (let dataObject of pricingArray) {
+                        let reservedPsObject = dataObject.monthlyPrices.reserved;
+                        let reservedPskey = "";
+                        if (pricingModel == "Reserved Standard") {
+                            reservedPskey = `standard_${reservationTerm.replace(' ','')}_${paymentOption.replace(' ','').toLowerCase()}`
+                        } else if (pricingModel == "Reserved Convertible") {
+                            reservedPskey = `convertible_${reservationTerm.replace(' ','')}_${paymentOption.replace(' ','').toLowerCase()}`
+                        }
+
+                        let reservedPsValue = reservedPsObject[reservedPskey];
+
+                        let monthlyCost = Number(reservedPsValue['monthly']) * 12;
+                        let upfrontCost = Number(reservedPsValue['upfront']);
+                        let annualCost = Number((monthlyCost + upfrontCost).toFixed(2));
+                        let psDetails = reservedPskey.split('_')
+
+                        let tempObject = {
+                            annualCost: annualCost,
+                            monthly: Number(monthlyPricingObject[ps][rps]['monthly']),
+                            upfront: Number(monthlyPricingObject[ps][rps]['upfront']),
+                            instanceType: dataObject.attributes.instanceType,
+                            os: dataObject.attributes.operatingSystem,
+                            location: dataObject.attributes.location,
+                            pricingStrategy: `Reserved ${psDetails[0]}`,
+                            reservationTerm: psDetails[1],
+                            paymentType: psDetails[2]
+
+                        }
+                        cheapestAnnualPricingStrategy = tempObject;
+
                     }
                 }
 
@@ -363,9 +419,9 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
                             return (obj.attributes.location == inputArgs.region)
                         }
                     })
-                    findCheapestPricing(filteredPricingArray);
+                    findCheapestPricing(filteredPricingArray,inputArgs.pricingModel,inputArgs.reservationTerm, inputArgs.paymentOption);
                 }else {
-                    findCheapestPricing(allInstancePricingValues[inputArgs.machineType]);
+                    findCheapestPricing(allInstancePricingValues[inputArgs.machineType],inputArgs.pricingModel,inputArgs.reservationTerm, inputArgs.paymentOption);
                 }
             } else {
                 for(let insType in allInstancePricingValues) {
@@ -379,9 +435,9 @@ exports.getAwsPricing = async (series, awsInput, cb) => {
                                 return (obj.attributes.location == inputArgs.region)
                             }
                         })
-                        findCheapestPricing(filteredPricingArray);
+                        findCheapestPricing(filteredPricingArray,inputArgs.pricingModel,inputArgs.reservationTerm, inputArgs.paymentOption);
                     }else {
-                        findCheapestPricing(allInstancePricingValues[insType]);
+                        findCheapestPricing(allInstancePricingValues[insType],inputArgs.pricingModel,inputArgs.reservationTerm, inputArgs.paymentOption);
                     }
                 }
             }
