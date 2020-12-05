@@ -87,19 +87,19 @@ const returnMachineAvailableSeries = (machine) =>{
     })
     return AvailableMachinesInseries;
 }
-const filterMachine = (machineSeries,jsonData,usagetype,custom) =>{
+const filterMachine = (machineSeries,jsonData,resourceType,usagetype,custom) =>{
      return jsonData = jsonData.filter((mac)=>{
         if(usagetype){
             if(custom){
-                return ((mac.fileData.description.indexOf(`${machineSeries}`) != -1 && mac.fileData.description.indexOf(`Custom`) != -1 ) && mac.usage === usagetype)
+                return ((mac.fileData.description.indexOf(`${machineSeries}`) != -1 && mac.fileData.description.indexOf(`Custom`) != -1 && mac.fileData.description.indexOf(`${resourceType}`) != -1 ) && mac.usage === usagetype)
             }else{
-                return ((mac.fileData.description.indexOf(`${machineSeries}`) != -1 && mac.fileData.description.indexOf(`Custom`) == -1 ) && mac.usage === usagetype)
+                return ((mac.fileData.description.indexOf(`${machineSeries}`) != -1 && mac.fileData.description.indexOf(`Custom`) == -1 && mac.fileData.description.indexOf(`${resourceType}`) != -1)  && mac.usage === usagetype)
             }
         }else{
             if(custom){
-            return (mac.fileData.description.indexOf(machineSeries)!= -1 && mac.fileData.description.indexOf(`Custom`) != -1 )
+            return (mac.fileData.description.indexOf(machineSeries)!= -1 && mac.fileData.description.indexOf(`${resourceType}`) != -1 && mac.fileData.description.indexOf(`Custom`) != -1 )
             }else {
-                return (mac.fileData.description.indexOf(machineSeries)!= -1 && mac.fileData.description.indexOf(`Custom`) == -1 )
+                return (mac.fileData.description.indexOf(machineSeries)!= -1 && mac.fileData.description.indexOf(`${resourceType}`) != -1 && mac.fileData.description.indexOf(`Custom`) == -1 )
             }
         }
     })
@@ -140,7 +140,32 @@ const calPerMonthStoragePrice = (resourceData,durationInMonth,storageSize) =>{
     return totalPrice = startUsageAmount + (nanos/Math.pow(10,9))*durationInMonth*storageSize
 }
 
-exports.servicePriceJson  = (gcpInput) =>{
+exports.gcpServicePriceJson = (serviceSeries,gcpInput)=>{
+    let servicePriceJsonArr = [];
+    if(!gcpInput){
+        serviceSeries.forEach((series)=>{
+            let input =  {};
+            input.series = series;
+            servicePriceJsonArr.push(servicePriceJson(input))
+        })
+        let minPriceService = servicePriceJsonArr[0];
+        if(servicePriceJsonArr.length>1){
+            minPriceService = servicePriceJsonArr[0];
+            for(let i = 1;i<servicePriceJsonArr.length;i++){
+                if(minPriceService.totalPriceArray[0].totalPrice > servicePriceJsonArr[i].totalPriceArray[0].totalPrice){
+                    minPriceService = servicePriceJsonArr[i]
+                }
+            }
+        }else{
+            minPriceService = servicePriceJsonArr[0];
+        }
+        return minPriceService;
+    }else{
+        return servicePriceJson(gcpInput)
+    }
+    
+}
+const servicePriceJson  = (gcpInput) =>{
     let series = gcpInput.series;
     let machine = gcpInput.machine ? gcpInput.machine : "";
     let region = gcpInput.machineRegion ? gcpInput.machineRegion : "";
@@ -163,9 +188,9 @@ exports.servicePriceJson  = (gcpInput) =>{
     }else if(series.toUpperCase() ==="N2"){
         machineSeries = "N2 "
     }else if(series.toUpperCase() ==="C1"){
-        machineSeries = "C1 "
+        machineSeries = "Compute optimized "
     }else if(series.toUpperCase() ==="M2"){
-        machineSeries = "M2 "
+        machineSeries = "Memory-optimized "
     }else if(series.toUpperCase() ==="N1"){
         machineSeries = "N1 "
     }
@@ -182,9 +207,9 @@ exports.servicePriceJson  = (gcpInput) =>{
         }else if(mchineObj.machine.includes("n2")){
             machineSeries = "N2 "
         }else if(mchineObj.machine.includes("c1")){
-            machineSeries = "C1 "
+            machineSeries = "Compute optimized "
         }else if(mchineObj.machine.includes("m2")){
-            machineSeries = "M2 "
+            machineSeries = "Memory-optimized "
         }else if(mchineObj.machine.includes("n1")){
             machineSeries = "N1 "
         }
@@ -208,33 +233,45 @@ exports.servicePriceJson  = (gcpInput) =>{
         for (const [index,region] of serverRegions.entries()) {
             cpuJsonData = readJsonForResource("Compute",region,"CPU");
             ramJsonData = readJsonForResource("Compute",region,"RAM");
+            if(series.toLocaleUpperCase() === "N1"){
+                cpuJsonData = [...cpuJsonData,...readJsonForResource("Compute",region,"N1Standard")]
+                ramJsonData = [...ramJsonData,...readJsonForResource("Compute",region,"N1Standard")]
+            }
             if(usageType === ""){
                 if(cpuJsonData.length >0){
-                    cpuJsonData = filterMachine(machineSeries,cpuJsonData);
+                    cpuJsonData = filterMachine(machineSeries,cpuJsonData,"Instance");
                     cpuResource = calcuateMinimalPriceResource(cpuJsonData);
                 }
                 if(ramJsonData.length >0){
-                    ramJsonData = filterMachine(machineSeries,ramJsonData);
+                    ramJsonData = filterMachine(machineSeries,ramJsonData,"Ram");
                     ramResource = calcuateMinimalPriceResource(ramJsonData);
                 }
             }else{
                 if(custom !== ""){
-                    cpuResource = filterMachine(machineSeries,cpuJsonData,usageType,custom);
+                    cpuResource = filterMachine(machineSeries,cpuJsonData,"Instance",usageType,custom);
                     if(cpuJsonData.length >0){
                         cpuResource = cpuResource[0]
+                    }else{
+                        return "resource not available for this usage"
                     }
-                    ramResource = filterMachine(machineSeries,ramJsonData,usageType, custom);
+                    ramResource = filterMachine(machineSeries,ramJsonData,"Ram",usageType, custom);
                     if(ramJsonData.length >0){
                         ramResource = ramResource[0];
+                    }else{
+                        return "resource not available for this usage"
                     }
                 } else {
-                    cpuResource = filterMachine(machineSeries,cpuJsonData,usageType);
+                    cpuResource = filterMachine(machineSeries,cpuJsonData,"Instance",usageType);
                     if(cpuJsonData.length >0){
                         cpuResource = cpuResource[0]
+                    }else{
+                        return "resource not available for this usage"
                     }
-                    ramResource = filterMachine(machineSeries,ramJsonData,usageType);
+                    ramResource = filterMachine(machineSeries,ramJsonData,"Ram",usageType);
                     if(ramJsonData.length >0){
                         ramResource = ramResource[0];
+                    }else{
+                        return "resource not available for this usage"
                     }
                 }
             }
@@ -247,22 +284,42 @@ exports.servicePriceJson  = (gcpInput) =>{
     }else{
         cpuJsonData = readJsonForResource("Compute",region,"CPU");
         ramJsonData = readJsonForResource("Compute",region,"RAM");
+        if(series.toLocaleUpperCase() === "N1"){
+            cpuJsonData = [...cpuJsonData,...readJsonForResource("Compute",region,"N1Standard")]
+            ramJsonData = [...ramJsonData,...readJsonForResource("Compute",region,"N1Standard")]
+        }
         if(usageType === ""){
-            cpuJsonData = filterMachine(machineSeries,cpuJsonData);
-            ramJsonData = filterMachine(machineSeries,ramJsonData);
+            cpuJsonData = filterMachine(machineSeries,cpuJsonData,"Instance");
+            ramJsonData = filterMachine(machineSeries,ramJsonData,"Ram");
             cpuResource = calcuateMinimalPriceResource(cpuJsonData);
             ramResource = calcuateMinimalPriceResource(ramJsonData);
         }else{
             if(custom !== ""){
-                cpuResource = filterMachine(machineSeries,cpuJsonData,usageType,custom);
-                cpuResource = cpuResource[0]
-                ramResource = filterMachine(machineSeries,ramJsonData,usageType, custom);
-                ramResource = ramResource[0];
+                cpuResource = filterMachine(machineSeries,cpuJsonData,"Instance",usageType,custom);
+                if(cpuResource.length>0){
+                    cpuResource = cpuResource[0]
+                }else{
+                    return "resource not available for this usage"
+                }
+                ramResource = filterMachine(machineSeries,ramJsonData,"Ram",usageType, custom);
+                if(cpuResource.length>0){
+                    ramResource = ramResource[0];
+                }else{
+                    return "resource not available for this usage"
+                }
             } else {
-                cpuResource = filterMachine(machineSeries,cpuJsonData,usageType);
-                cpuResource = cpuResource[0]
-                ramResource = filterMachine(machineSeries,ramJsonData,usageType);
-                ramResource = ramResource[0];
+                cpuResource = filterMachine(machineSeries,cpuJsonData,"Instance",usageType);
+                    if(cpuResource.length>0){
+                        cpuResource = cpuResource[0]
+                    }else{
+                        return "resource not available for this usage"
+                    }                
+                ramResource = filterMachine(machineSeries,ramJsonData,"Ram",usageType);
+                    if(cpuResource.length>0){
+                        ramResource = ramResource[0];
+                    }else{
+                        return "resource not available for this usage"
+                    }
             }
         }
     }
@@ -318,23 +375,26 @@ exports.servicePriceJson  = (gcpInput) =>{
     returnObj.metadata = {};
     returnObj.metadata.cpuUsageTypes = returnUsageTypes("Compute",cpuResource.fileData.serviceRegions[0],"CPU");
     returnObj.metadata.ramUsageTypes = returnUsageTypes("Compute",cpuResource.fileData.serviceRegions[0],"RAM");
-    returnObj.metadata.machineAvailableSeries = returnMachineAvailableSeries(mchineObj.machine)
+    returnObj.metadata.machineAvailableSeries = returnMachineAvailableSeries(mchineObj.machine);
     returnObj.metadata.serviceRegions = serverRegions;
-    returnObj.metadata.availableOS = filterOperationSysLicenses("License","global");
-    returnObj.metadata.availableOSRegion = "global"
+    //returnObj.metadata.availableOS = filterOperationSysLicenses("License","global");
+    //returnObj.metadata.availableOSRegion = "global"
     returnObj.metadata.availableStorage = [{type:"LocalSSD",usage:["Commit1Yr","Commit3Yr","OnDemand"]},
     {type:"PDStandard",usage:["OnDemand"]},{type:"SSD",usage:["OnDemand"]}];
     if(storageData){
         returnObj.storageData = {};
-        returnObj.storageData.usage =  storageData.usage
+        returnObj.storageData.usage =  storageData.usage;
         returnObj.storageData.description =  storageData.fileData.description;
         returnObj.storageData.serviceRegions =  storageData.fileData.serviceRegions;
         returnObj.storageData.storageSize = storageData.storageSize
         returnObj.storageData.totalStoragePrice = storageData.totalStoragePrice
-
-
     }
     return returnObj;
+}
+
+
+const costCalcution = () =>{
+
 }
 
 const filterOS = (OS) =>{
