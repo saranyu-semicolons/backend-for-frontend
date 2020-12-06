@@ -10,5 +10,10 @@ router.post("/servicePriceJson", (req, res) => {
     });
 })
 
+router.get("/", (req, res) => {
+    res.status(200).json('OK');
+})
+
+
 module.exports = router;
 
