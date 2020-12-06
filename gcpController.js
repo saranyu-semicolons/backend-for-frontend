@@ -128,11 +128,16 @@ const calcuateMinimalPriceResource = (resourceData) => {
     return minValue
 }
 
-const calPerMonthPrice = (resourceData,durationInMonth) =>{
+const calPerMonthPrice = (resourceData,hoursperMonth,durationInMonth) =>{
     let startUsageAmount = resourceData.fileData.pricingInfo[0].pricingExpression.tieredRates[0].startUsageAmount
     let unitPrice = resourceData.fileData.pricingInfo[0].pricingExpression.tieredRates[0].unitPrice
     let nanos = unitPrice.nanos
-    return totalPrice = startUsageAmount + (nanos/Math.pow(10,9))*730*durationInMonth
+    let totalPrice = startUsageAmount + (nanos/Math.pow(10,9))*hoursperMonth*durationInMonth
+
+    if(hoursperMonth > 180){
+        totalPrice = totalPrice - totalPrice*0.25
+    }
+    return totalPrice;
 }
 
 const calPerMonthStoragePrice = (resourceData,durationInMonth,storageSize) =>{
@@ -145,12 +150,24 @@ const calPerMonthStoragePrice = (resourceData,durationInMonth,storageSize) =>{
 exports.gcpServicePriceJson = (serviceSeries,gcpInput)=>{
     let servicePriceJsonArr = [];
     if(!gcpInput){
+        gcpInput = {}
+    }
+    if(gcpInput.hasOwnProperty("machine")){
         serviceSeries.forEach((series)=>{
-            let input =  {};
-            input.series = series;
-            servicePriceJsonArr.push(servicePriceJson(input))
+            if(gcpInput.hasOwnProperty("machine") && gcpInput.machine.includes(`${series}-`)){
+                gcpInput.series = series;
+                servicePriceJsonArr.push(servicePriceJson(gcpInput))
+                return servicePriceJsonArr[0]
+            }
         })
+    }else{
+        serviceSeries.forEach((series)=>{
+            gcpInput.series = series;
+            servicePriceJsonArr.push(servicePriceJson(gcpInput))
+        })
+    }
         let minPriceService = servicePriceJsonArr[0];
+        console.log(servicePriceJsonArr)
         if(servicePriceJsonArr.length>1){
             minPriceService = servicePriceJsonArr[0];
             for(let i = 1;i<servicePriceJsonArr.length;i++){
@@ -162,9 +179,6 @@ exports.gcpServicePriceJson = (serviceSeries,gcpInput)=>{
             minPriceService = servicePriceJsonArr[0];
         }
         return minPriceService;
-    }else{
-        return servicePriceJson(gcpInput)
-    }
     
 }
 const servicePriceJson  = (gcpInput) =>{
@@ -175,6 +189,7 @@ const servicePriceJson  = (gcpInput) =>{
     let storage = gcpInput.storage ? gcpInput.storage : "";
     let usageType = gcpInput.usageType ? gcpInput.usageType : "";
     let custom = gcpInput.custom ? gcpInput.custom : "";
+    let hoursperMonth = gcpInput.hoursperMonth ? gcpInput.hoursperMonth : 730
     let mchineObj = {};
     let mchineObjArr = []
     let machineSeries = "";
@@ -308,7 +323,7 @@ const servicePriceJson  = (gcpInput) =>{
                     return "resource not available for this usage"
                 }
                 ramResource = filterMachine(machineSeries,ramJsonData,"Ram",usageType, custom);
-                if(cpuResource.length>0){
+                if(ramResource.length>0){
                     ramResource = ramResource[0];
                 }else{
                     return "resource not available for this usage"
@@ -321,7 +336,7 @@ const servicePriceJson  = (gcpInput) =>{
                         return "resource not available for this usage"
                     }                
                 ramResource = filterMachine(machineSeries,ramJsonData,"Ram",usageType);
-                    if(cpuResource.length>0){
+                    if(ramResource.length>0){
                         ramResource = ramResource[0];
                     }else{
                         return "resource not available for this usage"
@@ -333,8 +348,8 @@ const servicePriceJson  = (gcpInput) =>{
     if(machine == "" && mchineObjArr.length > 0){
         mchineObjArr.forEach((mchineObj)=>{
             let {CPU,RAM} = mchineObj;
-            let cpuPrice = calPerMonthPrice(cpuResource,1)
-            let ramPrice = calPerMonthPrice(ramResource,1)
+            let cpuPrice = calPerMonthPrice(cpuResource,hoursperMonth,1)
+            let ramPrice = calPerMonthPrice(ramResource,hoursperMonth,1)
             mchineObj.totalPrice = ((CPU * cpuPrice )+(RAM * ramPrice));
         })
         mchineObj = mchineObjArr[0];
@@ -358,8 +373,8 @@ const servicePriceJson  = (gcpInput) =>{
         let {CPU,RAM} = mchineObj;
         for(let i=1;i<=36;i++){
             let priceObj = {}
-            let cpuPrice = calPerMonthPrice(cpuResource,i)
-            let ramPrice = calPerMonthPrice(ramResource,i)
+            let cpuPrice = calPerMonthPrice(cpuResource,hoursperMonth,i)
+            let ramPrice = calPerMonthPrice(ramResource,hoursperMonth,i)
             priceObj.month = i;
             if(storageData){
                 priceObj.totalPrice = ((CPU * cpuPrice )+(RAM * ramPrice)) + storageData.totalStoragePrice;
