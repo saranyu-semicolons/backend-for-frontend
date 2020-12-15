@@ -18,10 +18,12 @@
   },
   "homepage": "https://github.com/saranyu-semicolons/backend-for-frontend#readme",
   "dependencies": {
+    "@google-cloud/compute": "^2.4.1",
     "aws-sdk": "^2.799.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "googleapis": "^66.0.0",
     "nodemon": "^2.0.6"
   }
 }
